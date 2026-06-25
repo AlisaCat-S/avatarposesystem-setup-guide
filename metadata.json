@@ -1,0 +1,6 @@
+{
+  "name": "AvatarPoseSystem Setup Guide",
+  "description": "An interactive, step-by-step Chinese setup and troubleshooting guide for AvatarPoseSystem (APS) in Unity, featuring annotated illustrations, bone-merging instructions, and camera adapters.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
