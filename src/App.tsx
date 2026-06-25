@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Settings, 
   CheckCircle, 
@@ -21,9 +21,11 @@ import {
   UploadCloud,
   Image as ImageIcon,
   Trash2,
-  Sliders
+  Sliders,
+  Languages
 } from 'lucide-react';
 import ScreenshotCompare from './components/ScreenshotCompare';
+import { locales, stepsList, Language } from './locales';
 
 // Define Step interface
 interface Step {
@@ -35,6 +37,22 @@ interface Step {
 }
 
 export default function App() {
+  // Localization setup
+  const [lang, setLang] = useState<Language>('zh');
+
+  // Detect language automatically on mount
+  useEffect(() => {
+    const userLang = navigator.language || (navigator as any).userLanguage || 'zh';
+    const lowerLang = userLang.toLowerCase();
+    if (lowerLang.includes('ja') || lowerLang.includes('jp')) {
+      setLang('ja');
+    } else if (lowerLang.includes('en')) {
+      setLang('en');
+    } else {
+      setLang('zh');
+    }
+  }, []);
+
   // Navigation & step management
   const [activeStep, setActiveStep] = useState<number>(0);
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
@@ -86,6 +104,15 @@ export default function App() {
   const [jawBone, setJawBone] = useState<string>('hair_F_Root.001');
   const [rigStatus, setRigStatus] = useState<'error' | 'success'>('error');
   const [faceFixed, setFaceFixed] = useState<boolean>(false);
+
+  const fixRigMapping = () => {
+    setLeftEyeBone('LeftEye');
+    setRightEyeBone('RightEye');
+    setJawBone('None');
+    setRigStatus('success');
+    setFaceFixed(true);
+    markStepComplete(4);
+  };
 
   // Reset function to practice again
   const resetSimulators = () => {
@@ -174,13 +201,8 @@ export default function App() {
     });
   };
 
-  const steps: Step[] = [
-    { id: 0, num: "01", title: "前置准备", subTitle: "插件依赖 & 警告", category: "Preparation" },
-    { id: 1, num: "02", title: "基础导入", subTitle: "组件与面板认识", category: "Basic Import" },
-    { id: 2, num: "03", title: "相机适配", subTitle: "VL2 & VRCLens", category: "Camera Setup" },
-    { id: 3, num: "04", title: "换头骨骼处理", subTitle: "拼合模型节点重组", category: "Bone Merging" },
-    { id: 4, num: "05", title: "疑难解答", subTitle: "面部破面 & 骨骼修正", category: "Troubleshooting" },
-  ];
+  const steps: Step[] = stepsList[lang];
+  const t = locales[lang];
 
   // Logic to calculate progress
   const totalSteps = steps.length;
@@ -203,47 +225,90 @@ export default function App() {
   const s1CheckImport = () => {
     if (!s1MaterialChecked && !s1ScriptChecked && s1ShaderChecked) {
       setS1Imported(true);
-      setS1SuccessMessage('🎉 导入成功！只导入了 Shader，安全避开全部导入的报错坑！');
+      if (lang === 'ja') {
+        setS1SuccessMessage('🎉 インポート成功！Shaderフォルダのみ正常にロードされ、コンパイルエラーを完全に回避しました！');
+      } else if (lang === 'en') {
+        setS1SuccessMessage('🎉 Import Successful! Imported only the Shader folder, safely avoiding script compilation conflicts!');
+      } else {
+        setS1SuccessMessage('🎉 导入成功！只导入了 Shader，安全避开全部导入的报错坑！');
+      }
       markStepComplete(0);
     } else if (s1MaterialChecked || s1ScriptChecked) {
       setS1Imported(false);
-      setS1SuccessMessage('❌ 导入错误：您勾选了 Shader 以外的文件夹！如果全部导入，Unity 将会编译报错导致工程瘫痪。请仔细阅读说明，点击左上角的 "None" 取消全选，然后仅仅勾选底部的 "Shader" 文件夹！');
+      if (lang === 'ja') {
+        setS1SuccessMessage('❌ インポートエラー：Shader以外のフォルダが選択されています！すべてインポートすると、Udonスクリプトの重複によりUnityプロジェクト全体が破壊されます。左上の「None」をクリックしてチェックを解除し、「Shader」フォルダのみを選択してください！');
+      } else if (lang === 'en') {
+        setS1SuccessMessage('❌ Import Error: Folders other than Shader are checked! If you import all, Unity will experience namespace collisions and lock the project. Click "None" to clear all, then select ONLY the "Shader" folder!');
+      } else {
+        setS1SuccessMessage('❌ 导入错误：您勾选了 Shader 以外的文件夹！如果全部导入，Unity 将会编译报错导致工程瘫痪。请仔细阅读说明，点击左上角的 "None" 取消全选，然后仅仅勾选底部的 "Shader" 文件夹！');
+      }
     } else {
       setS1Imported(false);
-      setS1SuccessMessage('⚠️ 您没有勾选 Shader 文件夹，无法工作。请至少勾选最下方的 Shader 文件夹！');
+      if (lang === 'ja') {
+        setS1SuccessMessage('⚠️ Shaderフォルダが選択されていません。少なくとも一番下の「Shader」フォルダにチェックを入れてください！');
+      } else if (lang === 'en') {
+        setS1SuccessMessage('⚠️ Shader folder is not selected. You must check at least the bottom "Shader" folder to proceed!');
+      } else {
+        setS1SuccessMessage('⚠️ 您没有勾选 Shader 文件夹，无法工作。请至少勾选最下方的 Shader 文件夹！');
+      }
     }
-  };
-
-  // Step 5 Correct Setup trigger
-  const fixRigMapping = () => {
-    setLeftEyeBone('LeftEye');
-    setRightEyeBone('RightEye');
-    setJawBone('None');
-    setFaceFixed(true);
-    markStepComplete(4);
   };
 
   return (
     <div className="flex h-screen w-full bg-[#F8FAFC] font-sans text-[#1E293B] overflow-hidden">
       {/* 1. LEFT SIDEBAR: Minimalist white Navigation & Progress checklist */}
       <nav className="w-80 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none shadow-sm z-10">
-        <div>
+        <div className="overflow-y-auto max-h-[calc(100vh-140px)]">
           {/* Brand header */}
           <div className="p-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-lg flex items-center justify-center text-white font-black shadow-md shadow-blue-200">
+              <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-lg flex items-center justify-center text-white font-black shadow-md shadow-blue-200 shrink-0">
                 APS
               </div>
               <div>
-                <h1 className="font-bold text-base tracking-tight">AvatarPoseSystem</h1>
-                <p className="text-xs text-slate-400 font-medium tracking-wide">交互式设置与避坑指南</p>
+                <h1 className="font-bold text-base tracking-tight">{t.navTitle}</h1>
+                <p className="text-xs text-slate-400 font-medium tracking-wide">{t.navSubTitle}</p>
               </div>
+            </div>
+
+            {/* Elegant Language Switcher Row */}
+            <div className="mt-4 flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg text-xs font-semibold">
+              <button
+                onClick={() => setLang('zh')}
+                className={`flex-1 py-1 px-2 rounded-md transition-all text-center cursor-pointer ${
+                  lang === 'zh'
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                简体中文
+              </button>
+              <button
+                onClick={() => setLang('en')}
+                className={`flex-1 py-1 px-2 rounded-md transition-all text-center cursor-pointer ${
+                  lang === 'en'
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                English
+              </button>
+              <button
+                onClick={() => setLang('ja')}
+                className={`flex-1 py-1 px-2 rounded-md transition-all text-center cursor-pointer ${
+                  lang === 'ja'
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                日本語
+              </button>
             </div>
             
             {/* Overall progress indicator */}
             <div className="mt-5 p-3.5 bg-slate-50 rounded-lg border border-slate-100">
               <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="text-slate-500">新手实操进度</span>
+                <span className="text-slate-500">{t.progressTitle}</span>
                 <span className="text-blue-600">{progressPercent}%</span>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -254,7 +319,7 @@ export default function App() {
               </div>
               <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1 leading-normal">
                 <Sparkles className="w-3 h-3 text-amber-500" />
-                在右侧Unity仿真面板中完成实操，自动解锁绿勾
+                {t.sparkleHint}
               </p>
             </div>
           </div>
@@ -262,7 +327,7 @@ export default function App() {
           {/* Navigation Step Lists */}
           <div className="p-4 space-y-1">
             <span className="text-[10px] font-bold text-slate-400 px-3 uppercase tracking-wider block mb-2">
-              指南大纲 & 避坑步骤
+              {t.navOutline}
             </span>
             {steps.map((step) => {
               const isActive = activeStep === step.id;
@@ -292,7 +357,7 @@ export default function App() {
                       <span className="text-sm font-bold tracking-tight block truncate">{step.title}</span>
                       {step.id === 2 && (
                         <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">
-                          极重要
+                          {t.importantTag}
                         </span>
                       )}
                     </div>
@@ -310,11 +375,11 @@ export default function App() {
         {/* Sidebar Footer */}
         <div className="p-6 border-t border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-slate-500">AvatarPoseSystem</span>
-            <span className="text-[10px] bg-slate-200/70 text-slate-600 px-1.5 py-0.5 rounded font-mono font-bold">v1.0.18+</span>
+            <span className="text-xs font-bold text-slate-500">{t.footerTitle}</span>
+            <span className="text-[10px] bg-slate-200/70 text-slate-600 px-1.5 py-0.5 rounded font-mono font-bold">{t.footerVersion}</span>
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-            本工具专为 APS 模型固定系统深度适配制作，用于快速检测及修复 VR 虚拟相机(VL2/VRCLens)失效、模型面部拉伸破面、眼球转动卡死等疑难报错。
+            {t.footerDesc}
           </p>
         </div>
       </nav>
@@ -325,7 +390,7 @@ export default function App() {
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 shrink-0 bg-white">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold bg-slate-900 text-white px-2 py-0.5 rounded uppercase tracking-widest font-mono">
-              STEP {steps[activeStep].num}
+              {t.stepTag} {steps[activeStep].num}
             </span>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">
               {steps[activeStep].title} — <span className="text-slate-500 text-sm font-medium">{steps[activeStep].subTitle}</span>
@@ -338,7 +403,7 @@ export default function App() {
               title="重置当前实战模拟器"
             >
               <Undo className="w-3.5 h-3.5" />
-              重置
+              {t.resetBtn}
             </button>
             <button
               onClick={() => {
@@ -349,7 +414,7 @@ export default function App() {
               }}
               className="px-4 py-1.5 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 hover:shadow-sm hover:shadow-blue-200 transition-all flex items-center gap-1 cursor-pointer"
             >
-              已设置，下一步
+              {t.nextBtn}
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -363,10 +428,10 @@ export default function App() {
               <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-r-lg">
                 <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-1">
                   <Info className="w-4 h-4 text-blue-600 shrink-0" />
-                  前置要求（极重要）
+                  {t.s1PreTitle}
                 </h3>
                 <p className="text-xs text-blue-800 leading-relaxed font-medium">
-                  在您正式导入 AvatarPoseSystem 之前，请确保 Unity 工程中已成功导入以下三个基础包。如果缺少它们，系统将直接引发严重的脚本编译错误！
+                  {t.s1PreDesc}
                 </p>
               </div>
 
@@ -374,23 +439,23 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm mb-3">1</div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-1">Modular Avatar (MA)</h4>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">{t.s1Card1Title}</h4>
                   <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    用于无损拼合衣服与骨骼系统，APS 系统完全基于 MA 架构进行底层事件驱动。
+                    {t.s1Card1Desc}
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
                   <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center font-bold text-sm mb-3">2</div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-1">lilToon Shader</h4>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">{t.s1Card2Title}</h4>
                   <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    VRChat 动漫模型最通用的渲染着色器。APS 组件的界面图标以及固定指示线均依赖此着色器。
+                    {t.s1Card2Desc}
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all border-amber-200 bg-amber-50/20">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-3">3</div>
-                  <h4 className="text-sm font-bold text-slate-800 mb-1">圆环进度条 (CircularGauge)</h4>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">{t.s1Card3Title}</h4>
                   <p className="text-xs text-amber-700/90 leading-relaxed font-medium">
-                    用于在您的右手圆盘菜单中渲染身体固定进度的百分比进度条特效。
+                    {t.s1Card3Desc}
                   </p>
                 </div>
               </div>
@@ -399,15 +464,15 @@ export default function App() {
               <div className="p-5 bg-red-50 border-l-4 border-rose-500 rounded-r-lg space-y-2">
                 <h3 className="text-sm font-bold text-rose-900 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
-                  ⚠️【重要警告】圆环进度条（CircularGauge）导入必坑事项：
+                  {t.s1WarnTitle}
                 </h3>
                 <p className="text-xs text-rose-800 leading-relaxed font-medium pl-6">
-                  导入此 Unity Package 时，<strong>千万不要全部导入</strong>！如果全部导入，包内自带的旧版本 C# 脚本、示例场景会与 VRChat SDK 3.0 的 Udon 产生命名冲突，导致您的 Unity 项目彻底瘫痪报错。
+                  {t.s1WarnDesc}
                 </p>
                 <div className="pl-6 pt-1">
-                  <h4 className="text-xs font-bold text-rose-900 mb-1">👉 正确操作方法：</h4>
+                  <h4 className="text-xs font-bold text-rose-900 mb-1">{t.s1WarnMethodTitle}</h4>
                   <p className="text-xs text-rose-800/90 leading-relaxed font-medium">
-                    如右侧的 <strong>[Unity仿真导入窗口]</strong> 所示，在弹出的 Import Window 中，点击左上角的 <code className="bg-red-100/80 px-1 py-0.5 rounded text-rose-700 font-mono font-bold">None</code> 取消全部勾选，然后滑动到最下方，<strong>只勾选 “Shader” 文件夹</strong>。之后点击右下角的 <code className="bg-rose-100 px-1 py-0.5 rounded text-rose-800 font-mono font-bold">Import</code>。
+                    {t.s1WarnMethodDesc}
                   </p>
                 </div>
               </div>
@@ -415,9 +480,9 @@ export default function App() {
               <div className="p-4 bg-slate-100 rounded-lg text-xs text-slate-600 space-y-1.5 font-medium leading-normal">
                 <p className="font-bold text-slate-700 flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                  实操步骤提醒：
+                  {t.s1TipTitle}
                 </p>
-                <p>在右侧的 Unity 仿真面板中，点击 <strong>None</strong> 按钮取消多余勾选，然后单独勾选 <strong>Shader</strong> 文件夹，再点击 <strong>Import</strong> 完成此步演练。</p>
+                <p>{t.s1TipDesc}</p>
               </div>
             </div>
           )}
@@ -426,16 +491,16 @@ export default function App() {
           {activeStep === 1 && (
             <div className="space-y-6">
               <div className="space-y-3">
-                <h3 className="text-base font-bold text-slate-900">1. 将 Prefab（预制体）拖入模型下</h3>
+                <h3 className="text-base font-bold text-slate-900">{t.s2Title1}</h3>
                 <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  打开 Unity，将 <code className="font-mono bg-slate-100 text-slate-800 px-1 rounded font-bold">AvatarPoseSystem</code> 的预制体直接拖拽至您的 VRChat Avatar 的最顶层级（即包含 Avatar Descriptor 的根节点下），使其成为与 Armature 骨骼、Body 皮肤同一层级的子物体。
+                  {t.s2Desc1}
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-base font-bold text-slate-900">2. 认识 AvatarPoseSystem 组件核心参数</h3>
+                <h3 className="text-base font-bold text-slate-900">{t.s2Title2}</h3>
                 <p className="text-xs text-slate-600 leading-relaxed font-medium mb-3">
-                  选中该预制体后，右侧 Inspector 将会显示 <code className="font-mono bg-slate-100 text-slate-800 px-1 rounded font-bold">AvatarPoseSystem</code> 脚本组件。它包含三个红线标记的骨骼与道具豁免槽：
+                  {t.s2Desc2}
                 </p>
 
                 {/* Grid layout of properties */}
@@ -443,30 +508,30 @@ export default function App() {
                   <div className="p-4 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-all">
                     <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2 pb-1.5 border-b border-slate-100">
                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                      Unfix Phys Bones
+                      {t.s2Card1Title}
                     </h4>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                      <strong>不希望被固定的物理骨骼</strong>（例如：长发、裙子、胸部、猫耳猫尾等）。当您的身体固定在空中时，这些骨骼仍然保持物理飘动，否则身体停住而头发不飘会显得极不自然。
+                      {t.s2Card1Desc}
                     </p>
                   </div>
 
                   <div className="p-4 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-all">
                     <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2 pb-1.5 border-b border-slate-100">
                       <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
-                      With Children
+                      {t.s2Card2Title}
                     </h4>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                      <strong>带有子节点的豁免物理骨骼</strong>。和上一个类似，但它会对您选中的那个骨骼节点<strong>及其所有的子级物理骨骼</strong>进行链式豁免，非常适合豁免复杂的长裙或者多段长尾巴。
+                      {t.s2Card2Desc}
                     </p>
                   </div>
 
                   <div className="p-4 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-all">
                     <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2 pb-1.5 border-b border-slate-100">
                       <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
-                      Unfix Objects
+                      {t.s2Card3Title}
                     </h4>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                      <strong>豁免的游戏对象</strong>。例如各种第三人称跟拍相机、挂在身上的小道具、浮空宠物等。放置在这里的游戏对象，在身体被锁死时，将保持世界空间的自由拖拽与交互运动。
+                      {t.s2Card3Desc}
                     </p>
                   </div>
                 </div>
@@ -477,17 +542,17 @@ export default function App() {
                 <div className="flex gap-2">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                   <div>
-                    <h4 className="text-xs font-bold text-amber-900 mb-0.5">⚠️ 额外要点：眼球豁免 (Unhandle Eyes)</h4>
+                    <h4 className="text-xs font-bold text-amber-900 mb-0.5">{t.s2ExtraTitle}</h4>
                     <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-                      如果您使用的是<strong>带面部追踪 (Face Tracking) 或眼动追踪 (Eye Tracking) </strong>的模型，请务必勾选组件上的 <code className="bg-amber-100 px-1 text-amber-900 font-bold font-mono">Unhandle Eyes</code>。如果不勾选此项，在身体进入固定姿态后，模型的眼球将被牢牢锁在默认朝前位置，无法进行眼球转动。
+                      {t.s2ExtraDesc}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 leading-relaxed font-medium">
-                <span className="font-bold text-slate-700">💡 模拟互动提示：</span>
-                在右侧的 Unity 仿真面板中，尝试在 <code className="font-mono text-slate-800 font-bold">Unfix Phys Bones</code> 下方添加并输入您的长发或裙子物理骨骼节点，以此加深对组件面板的理解。
+                <span className="font-bold text-slate-700">{t.s2TipTitle}</span>
+                {t.s2TipDesc}
               </div>
             </div>
           )}
@@ -498,10 +563,10 @@ export default function App() {
               <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-r-lg">
                 <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-1">
                   <Camera className="w-4 h-4 text-blue-600 shrink-0" />
-                  相机适配：为什么这步至关重要？
+                  {t.s3PreTitle}
                 </h3>
                 <p className="text-xs text-blue-800 leading-relaxed font-medium">
-                  VRChat 模型相机的底层运镜逻辑依赖特定的骨骼约束（Constraint）或世界坐标转换。当 APS 系统将您的模型“全轴固定”时，Unity 会强制覆盖所有坐标变动。如果不进行此节设置，您的相机镜头会死死卡在脚底或由于坐标丢失而直接消失失效！
+                  {t.s3PreDesc}
                 </p>
               </div>
 
@@ -511,38 +576,35 @@ export default function App() {
                   onClick={() => setCameraTab('vl2')}
                   className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${cameraTab === 'vl2' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
                 >
-                  适配 VirtualLens2 (VL2)
+                  {t.s3TabVL2}
                 </button>
                 <button 
                   onClick={() => setCameraTab('vrclens')}
                   className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${cameraTab === 'vrclens' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
                 >
-                  适配 VRCLens
+                  {t.s3TabVRCLens}
                 </button>
               </div>
 
               {cameraTab === 'vl2' ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-slate-900">📷 适配 VirtualLens2 (VL2) 核心步骤：</h4>
+                    <h4 className="text-sm font-bold text-slate-900">{t.s3VL2Title}</h4>
                     <ul className="text-xs text-slate-600 space-y-2.5 font-medium leading-normal pl-4 list-disc">
                       <li>
-                        <strong>第一步：拖拽本体</strong> <br />
-                        在 Unity 的 Hierarchy 列表中找到 <code className="bg-slate-100 font-mono px-1 rounded text-slate-800 font-bold">VirtualLens2</code> 插件本体，将其拖入 APS 组件的 <code className="text-blue-600 font-mono font-bold">Unfix Objects</code> 列表中（作为 Element 0）。
+                        {t.s3VL2Step1}
                       </li>
                       <li>
-                        <strong>第二步：手动指定路径</strong> <br />
-                        在下方配套的 <code className="text-blue-600 font-mono font-bold">Unfix Object Paths</code> 列表中，手动输入确切文本：
+                        {t.s3VL2Step2}
                         <div className="my-1.5 p-2 bg-slate-900 text-emerald-400 font-mono text-[11px] rounded border border-slate-800 select-all font-bold">
                           _VirtualLens_Root
                         </div>
-                        <span className="text-slate-400 text-[10px]">（⚠️ 务必保证拼写大小写一模一样，不要有任何多余的空格！）</span>
+                        <span className="text-slate-400 text-[10px]">{t.s3VL2Step2Desc}</span>
                       </li>
-                      <li className="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-400 text-amber-900 font-medium">
-                        <strong>⚠️ 极关键额外设置（无人机防死机）：</strong> <br />
-                        在 Hierarchy 中选中您的 <code className="font-mono bg-amber-100 font-bold">VirtualLens2</code> 本体，然后在右侧 Inspector 展开的 VirtualLens Settings 面板中滑动，找到 <code className="font-bold text-slate-800">Marker Objects</code> 区域。
+                      <li className="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-400 text-amber-900 font-medium list-none">
+                        <strong>{t.s3VL2WarnTitle}</strong>
                         <p className="mt-1">
-                          查看下方各项参数。如果右边有显示为带有“Auto”图标的按钮，请<strong>务必点击 Auto 按钮</strong>让它自动生成具体的实体对象。若不进行此步，身体固定后 VL2 对应的 Drone 无人机控制将直接瘫痪，无法飞起运镜！
+                          {t.s3VL2WarnDesc}
                         </p>
                       </li>
                     </ul>
@@ -551,36 +613,33 @@ export default function App() {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-slate-900">📷 适配 VRCLens 核心步骤：</h4>
+                    <h4 className="text-sm font-bold text-slate-900">{t.s3VRCLensTitle}</h4>
                     <p className="text-xs text-slate-600 font-medium leading-relaxed mb-2">
-                      VRCLens 相机由于其结构较为零散，除本体外，还有多个自动放置在骨骼上的拾取节点（Pickup）需要整体加入豁免列表。
+                      {t.s3VRCLensDesc}
                     </p>
                     <ul className="text-xs text-slate-600 space-y-2.5 font-medium leading-normal pl-4 list-disc">
                       <li>
-                        <strong>第一步：添加相机根目录</strong> <br />
-                        将 Hierarchy 根目录下的 <code className="bg-slate-100 font-mono px-1 rounded text-slate-800 font-bold">VRCLens</code> 整个对象拖入 APS 的 <code className="text-blue-600 font-mono font-bold">Unfix Objects</code> 列表中。
+                        {t.s3VRCLensStep1}
                       </li>
                       <li>
-                        <strong>第二步：豁免手部和头部 pickup 节点</strong> <br />
-                        依次在您的模型骨骼 Armature 中展开，找到以下三个自动挂载的游戏对象，并<strong>全部</strong>拖入 APS 的 <code className="text-blue-600 font-mono font-bold">Unfix Objects</code> 中：
-                        <ul className="mt-1.5 pl-4 space-y-1 text-[11px] bg-slate-50 p-2.5 rounded border border-slate-100">
+                        {t.s3VRCLensStep2}
+                        <ul className="mt-1.5 pl-4 space-y-1 text-[11px] bg-slate-50 p-2.5 rounded border border-slate-100 list-none">
                           <li className="flex items-center gap-1.5 text-slate-700">
                             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            手部骨骼 <code className="font-bold">Hand_L</code> 节点下的：<code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupA</code>
+                            {t.s3VRCLensHandL} <code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupA</code>
                           </li>
                           <li className="flex items-center gap-1.5 text-slate-700">
                             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            手部骨骼 <code className="font-bold">Hand_R</code> 节点下的：<code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupB</code>
+                            {t.s3VRCLensHandR} <code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupB</code>
                           </li>
                           <li className="flex items-center gap-1.5 text-slate-700">
                             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            头部骨骼 <code className="font-bold">Head</code> 节点下的：<code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupC</code>
+                            {t.s3VRCLensHead} <code className="bg-slate-200 text-slate-800 font-mono px-1 py-0.2 rounded font-bold">PickupC</code>
                           </li>
                         </ul>
                       </li>
-                      <li className="bg-emerald-50 p-2.5 rounded border border-emerald-100 text-emerald-800 font-medium text-[11px]">
-                        <strong>💡 检查列表：</strong>
-                        配置完成后，您的 <code className="font-mono">Unfix Objects</code> 列表中应当包含整整 <strong>4 个对象</strong>（VRCLens, PickupA, PickupB, PickupC），如图5所示。
+                      <li className="bg-emerald-50 p-2.5 rounded border border-emerald-100 text-emerald-800 font-medium text-[11px] list-none">
+                        <strong>{t.s3VRCLensCheckTitle}</strong> {t.s3VRCLensCheckDesc}
                       </li>
                     </ul>
                   </div>
@@ -588,8 +647,8 @@ export default function App() {
               )}
 
               <div className="p-3 bg-slate-100 rounded-lg text-xs text-slate-600 space-y-1 font-medium">
-                <p className="font-bold text-slate-700">💻 模拟操作指南：</p>
-                <p>点击右侧 Unity 仿真面板上的相机切换按钮，完成对应的相机拖拽和点击 Auto 按钮的步骤，让其变成绿色成功状态！</p>
+                <p className="font-bold text-slate-700">{t.s3TipTitle}</p>
+                <p>{t.s3TipDesc}</p>
               </div>
             </div>
           )}
@@ -600,26 +659,26 @@ export default function App() {
               <div className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg">
                 <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2 mb-1">
                   <Workflow className="w-4 h-4 text-orange-600 shrink-0" />
-                  拼合模型（换头 / 换装）的特殊骨骼处理
+                  {t.s4PreTitle}
                 </h3>
                 <p className="text-xs text-orange-800 leading-relaxed font-medium">
-                  当您的 VRChat Avatar 使用了“拼合模型”（即：使用了 A 模型的身体骨架，却换上了 B 模型的头部以追求完美长相）时，由于新头部的眼球和头部层级与原身体骨架脱节，APS 会无法定位您的面部并直接编译报错，导致面部完全无法活动。
+                  {t.s4PreDesc}
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-base font-bold text-slate-900">统一头部与眼球骨骼排列法（两步走）</h3>
+                <h3 className="text-base font-bold text-slate-900">{t.s4SubTitle1}</h3>
                 <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  请严格遵循以下骨骼层级拖拽排布，否则会导致 Unity 无法正确获取双眼位置的视线方向：
+                  {t.s4Desc1}
                 </p>
 
                 <div className="space-y-4 pt-2">
                   <div className="flex gap-3">
                     <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</div>
                     <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900">统一头部层级 (如图7)</h4>
+                      <h4 className="text-xs font-bold text-slate-900">{t.s4Step1Title}</h4>
                       <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                        在 Hierarchy 列表中，将您新换头部的 <code className="bg-slate-100 font-mono px-1 rounded text-slate-800 font-bold">Head</code> 骨骼节点，<strong>整体拖入并作为子物体</strong>放置在原身体骨骼的 <code className="bg-slate-100 font-mono px-1 rounded text-slate-800 font-bold">Head</code> 骨骼下方。
+                        {t.s4Step1Desc}
                       </p>
                     </div>
                   </div>
@@ -627,20 +686,14 @@ export default function App() {
                   <div className="flex gap-3">
                     <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
                     <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900">替换并重命名眼球骨骼 (如图8)</h4>
+                      <h4 className="text-xs font-bold text-slate-900">{t.s4Step2Title}</h4>
                       <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                        眼球骨骼必须继承原本身体的骨骼坐标名字，执行以下动作：
+                        {t.s4Step2Desc}
                       </p>
                       <ul className="text-xs text-slate-500 space-y-1 pl-4 list-decimal leading-relaxed font-medium">
-                        <li>
-                          将身体原有的旧眼球骨骼（如 <code className="font-mono bg-slate-100 px-1 font-bold">LeftEye</code> / <code className="font-mono bg-slate-100 px-1 font-bold">RightEye</code>）改名，在其后部增加下划线废弃（例如重命名为 <code className="font-mono bg-slate-100 px-1 font-bold">LeftEye_</code> / <code className="font-mono bg-slate-100 px-1 font-bold">RightEye_</code>）。
-                        </li>
-                        <li>
-                          将新头部自带的眼球骨骼（可能叫 <code className="font-mono">Eye_L</code> / <code className="font-mono">Eye_R</code>）移动到身体的 <code className="font-bold">Head</code> 骨骼下方。
-                        </li>
-                        <li>
-                          <strong>非常关键：</strong>将移过来的新头部眼球骨骼名字，<strong>改回与原身体骨骼一模一样的名字</strong>（即改回 <code className="font-mono font-bold text-blue-600">LeftEye</code> 和 <code className="font-mono font-bold text-blue-600">RightEye</code>）。
-                        </li>
+                        <li>{t.s4Step2Bullet1}</li>
+                        <li>{t.s4Step2Bullet2}</li>
+                        <li>{t.s4Step2Bullet3}</li>
                       </ul>
                     </div>
                   </div>
@@ -648,8 +701,8 @@ export default function App() {
               </div>
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 leading-relaxed font-medium">
-                <span className="font-bold text-slate-700">🎨 趣味模拟：</span>
-                您可以在右侧的 Unity 仿真骨骼树中，点击「合并骨骼」与「重命名」按钮，观察模型在拖拽重组后层级变绿通过的正确姿态。
+                <span className="font-bold text-slate-700">{t.s4TipTitle}</span>
+                {t.s4TipDesc}
               </div>
             </div>
           )}
@@ -660,49 +713,49 @@ export default function App() {
               <div className="p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg">
                 <h3 className="text-sm font-bold text-rose-900 flex items-center gap-2 mb-1">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  疑难解答：身体固定后脸部拉伸、眼睛不正常、破面？
+                  {t.s5PreTitle}
                 </h3>
                 <p className="text-xs text-rose-800 leading-relaxed font-medium">
-                  虽然 APS 最新版本修复了大部分显示破损问题，但由于导入部分 FBX 模型时，Unity 自动进行 Humanoid 骨骼识别会产生错乱。<strong>如果遇到身体停住、而整张脸部/下巴/眼球被莫名拉扯、扭曲到脖子后面的惨状</strong>，通常都是因为 FBX 骨骼重映射错误分配导致的！
+                  {t.s5PreDesc}
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900">🔧 FBX Humanoid 骨骼重构映射修复步骤</h3>
+                <h3 className="text-base font-bold text-slate-900">{t.s5SubTitle1}</h3>
                 
                 <div className="space-y-3.5 text-xs text-slate-600 leading-relaxed font-medium">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-start gap-2.5">
-                    <span className="bg-slate-200 text-slate-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px]">第一步</span>
+                    <span className="bg-slate-200 text-slate-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">{t.s5Step1Title}</span>
                     <p>
-                      在 Project 资源浏览器中找到模型原始的 <strong>FBX 文件</strong>。在右侧 Inspector 中切换到 <code className="font-bold">Rig</code> 标签，并点击 <code className="font-mono font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">Configure...</code> 按钮 (进入绿色的骨骼分配界面)。
+                      {t.s5Step1Desc}
                     </p>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-start gap-2.5">
-                    <span className="bg-slate-200 text-slate-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px]">第二步</span>
+                    <span className="bg-slate-200 text-slate-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">{t.s5Step2Title}</span>
                     <p>
-                      在骨骼映射小绿人界面中，点击绿人头部的圆圈，向下滚动到最底部的 <code className="font-bold">Optional Bone</code>（可选骨骼）折叠页。
+                      {t.s5Step2Desc}
                     </p>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border-rose-200 bg-rose-50/20 flex items-start gap-2.5">
-                    <span className="bg-rose-100 text-rose-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">排错核心</span>
+                    <span className="bg-rose-100 text-rose-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">{t.s5Step3Title}</span>
                     <div>
                       <p className="font-bold text-rose-950 mb-1">
-                        检查 Jaw (下巴)、Left Eye (左眼)、Right Eye (右眼) 的分配：
+                        {t.s5Step3Desc1}
                       </p>
                       <p className="text-rose-900">
-                        由于 Unity 的自动算法缺陷，非常多的时候它会<strong>错误地将前发（Hair_Front）或者呆毛骨骼分配给 Jaw (下巴)，或者分配给左右眼 (Eyes)</strong>！当身体固定、物理飘动头发时，Unity 误以为在操作下巴和眼球，于是强行拉扯整张脸和头部，造成恐怖的破面！
+                        {t.s5Step3Desc2}
                       </p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border-emerald-200 bg-emerald-50/20 flex items-start gap-2.5">
-                    <span className="bg-emerald-100 text-emerald-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">解决方法</span>
+                    <span className="bg-emerald-100 text-emerald-800 rounded font-bold px-1.5 py-0.5 font-mono text-[10px] shrink-0">{t.s5Step4Title}</span>
                     <div>
-                      <p className="font-bold text-emerald-950 mb-0.5">清空错误分配的骨骼：</p>
+                      <p className="font-bold text-emerald-950 mb-0.5">{t.s5Step4Desc1}</p>
                       <p className="text-emerald-900">
-                        将无关的头发骨骼从 <code className="font-mono">Left Eye</code>、<code className="font-mono">Right Eye</code> 以及 <code className="font-mono">Jaw</code> 槽位中移除（点击其最右边的圆形靶心按钮，在弹出窗最上方选择 <strong>None</strong>，或者重新拖入正确的真实眼球骨骼），最后点击右下角的 <code className="font-bold bg-emerald-600 text-white px-2 py-0.5 rounded">Apply</code> 并点击 <code className="font-bold">Done</code> 保存！
+                        {t.s5Step4Desc2}
                       </p>
                     </div>
                   </div>
@@ -711,9 +764,8 @@ export default function App() {
 
               <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
                 <p className="text-xs text-blue-900 leading-normal font-medium">
-                  <strong>💡 破面实战演练：</strong> <br />
-                  在右侧 Unity 小绿人模拟配置面板中，您能看到眼球(LeftEye/RightEye)和下巴(Jaw)中误分了 <code className="text-rose-600 font-mono font-bold">hair</code> 物理骨骼。
-                  点击 <strong className="text-blue-700">“一键修复映射”</strong>，将其改成正确的 <code className="text-emerald-600 font-mono font-bold">Real Eye / None</code>，点击 <strong>Apply</strong> 即可完美恢复模型容貌！
+                  <strong>💡 {t.s5TipTitle}</strong> <br />
+                  {t.s5TipDesc}
                 </p>
               </div>
             </div>
@@ -1547,6 +1599,7 @@ export default function App() {
           ) : (
             <ScreenshotCompare 
               activeStep={activeStep}
+              lang={lang}
             />
           )}
 
